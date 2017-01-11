@@ -72,7 +72,7 @@ class MCQuestionAdmin(admin.ModelAdmin):
               'figure', 'quiz', 'explanation', 'answer_order')
 
     search_fields = ('content', 'explanation')
-    filter_horizontal = ('quiz',)
+    #filter_horizontal = ('quiz',)
 
     inlines = [AnswerInline]
 
@@ -92,16 +92,16 @@ class TFQuestionAdmin(admin.ModelAdmin):
               'figure', 'quiz', 'explanation', 'correct',)
 
     search_fields = ('content', 'explanation')
-    filter_horizontal = ('quiz',)
+    #filter_horizontal = ('quiz',)
 
 
 class EssayQuestionAdmin(admin.ModelAdmin):
-    list_display = ('content', 'category', )
+    list_display = ('content', 'category',)
     list_filter = ('category',)
-    fields = ('content', 'category', 'sub_category', 'quiz', 'explanation', )
+    fields = ('content', 'category', 'sub_category','figure', 'quiz', 'correct', 'explanation', )
     search_fields = ('content', 'explanation')
-    filter_horizontal = ('quiz',)
-
+    #filter_horizontal = ('quiz',)
+  
 admin.site.register(Quiz, QuizAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(SubCategory, SubCategoryAdmin)

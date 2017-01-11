@@ -1,16 +1,22 @@
-from django.conf.urls import patterns, url
+from django.conf import settings
+from django.conf.urls.static import static
 
+from django.conf.urls import include, patterns, url
+from django.contrib import admin
 from .views import QuizListView, CategoriesListView,\
     ViewQuizListByCategory, QuizUserProgressView, QuizMarkingList,\
     QuizMarkingDetail, QuizDetailView, QuizTake
 
+from . import views2
 
 urlpatterns = patterns('',
-
+			#url(r'^test/$', views.post_list, name='post_list'),
+			url(r'^photo/$', views2.single_photo, name='view_single_photo'),
+			url(r'^photo/(?P<photo_id>\d+)$', views2.single_photo2, name='view_single_photo2'),
+			url(r'^admin/', include(admin.site.urls)),
                        url(regex=r'^$',
                            view=QuizListView.as_view(),
                            name='quiz_index'),
-
                        url(regex=r'^category/$',
                            view=CategoriesListView.as_view(),
                            name='quiz_category_list_all'),
@@ -39,4 +45,6 @@ urlpatterns = patterns('',
                        url(regex=r'^(?P<quiz_name>[\w-]+)/take/$',
                            view=QuizTake.as_view(),
                            name='quiz_question'),
-)
+) + static('static_files', document_root=settings.MEDIA_ROOT) 
+
+#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -71,6 +71,9 @@
   {% endif %}
 
   {% if questions %}
+{% if quiz.figure %}
+        <img  src="{{ quiz.figure.url }}" alt="{{ quiz.title }}" width="100%"/>
+{% endif %}
 
     {% for question in questions %}
 
@@ -82,6 +85,7 @@
 
       {% if question.user_answer %}
       <p>{% trans "Your answer" %}: {{ question|answer_choice_to_string:question.user_answer }}</p>
+	  
       {% endif %}
 
 	  <p><strong>{% trans "Explanation" %}:</strong></p>

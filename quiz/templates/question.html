@@ -54,7 +54,9 @@
 </p>
 
 <p class="lead">{{ question.content }}</p>
-
+{% if quiz.figure %}
+        <img  src="{{ quiz.figure.url }}" alt="{{ quiz.title }}" width="100%"/>
+{% endif %}
 {% if question.figure %}
     <img src="{{ question.figure.url }}" alt="{{ question.content }}" />
 {% endif %}

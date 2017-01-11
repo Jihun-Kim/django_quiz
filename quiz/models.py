@@ -12,6 +12,10 @@ from django.conf import settings
 
 from model_utils.managers import InheritanceManager
 
+from django.db.models.fields.files import ImageFieldFile
+
+from PIL import Image
+import datetime, time
 
 class CategoryManager(models.Manager):
 
@@ -30,7 +34,7 @@ class Category(models.Model):
         verbose_name=_("Category"),
         max_length=250, blank=True,
         unique=True, null=True)
-
+    
     objects = CategoryManager()
 
     class Meta:
@@ -69,12 +73,18 @@ class Quiz(models.Model):
         verbose_name=_("Title"),
         max_length=60, blank=False)
 
+    figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
+                               blank=True,
+                               null=True,
+                               verbose_name=_("Figure"), 
+                               default='')
+
     description = models.TextField(
         verbose_name=_("Description"),
         blank=True, help_text=_("a description of the quiz"))
 
     url = models.SlugField(
-        max_length=60, blank=False,
+        max_length=60, blank=False, default=datetime.datetime.today().strftime("%y-%m-%d--%H-%M-%S"),
         help_text=_("a user friendly url"),
         verbose_name=_("user friendly url"))
 
@@ -94,7 +104,7 @@ class Quiz(models.Model):
         help_text=_("Number of questions to be answered on each attempt."))
 
     answers_at_end = models.BooleanField(
-        blank=False, default=False,
+        blank=False, default=True,
         help_text=_("Correct answer is NOT shown after question."
                     " Answers displayed at the end."),
         verbose_name=_("Answers at end"))
@@ -114,7 +124,7 @@ class Quiz(models.Model):
         verbose_name=_("Single Attempt"))
 
     pass_mark = models.SmallIntegerField(
-        blank=True, default=0,
+        blank=True, default=60,
         verbose_name=_("Pass Mark"),
         help_text=_("Percentage required to pass exam."),
         validators=[MaxValueValidator(100)])
@@ -149,6 +159,31 @@ class Quiz(models.Model):
 
         super(Quiz, self).save(force_insert, force_update, *args, **kwargs)
 
+	if self.figure:
+                self.image_autorotate(self.figure)
+
+    def image_autorotate(self, infile):
+    	with Image.open(infile.path) as image:
+        	file_format = image.format
+        	exif = image._getexif()
+
+        	#image.thumbnail((1667, 1250), resample=Image.ANTIALIAS)
+
+        	# if image has exif data about orientation, let's rotate it
+        	orientation_key = 274 # cf ExifTags
+        	if exif and orientation_key in exif:
+            		orientation = exif[orientation_key]
+
+            		rotate_values = {
+                		3: Image.ROTATE_180,
+                		6: Image.ROTATE_270,
+                		8: Image.ROTATE_90
+            		}
+
+            		if orientation in rotate_values:
+                		image = image.transpose(rotate_values[orientation])
+        	image.save(infile.path, file_format)
+		image.close()
     class Meta:
         verbose_name = _("Quiz")
         verbose_name_plural = _("Quizzes")
@@ -530,6 +565,31 @@ class Sitting(models.Model):
         total = self.get_max_score
         return answered, total
 
+class CustomImageFieldFile(ImageFieldFile):
+
+    def save(self, name, content, save=True):
+        super(CustomImageFieldFile, self).save(name, content, save=save)
+        if self.field.resize:
+            resized_img = resize_image(filename=self.path,
+                                       width=self.field.to_width,
+                                       height=self.field.to_height,
+                                       force=self.field.force)
+            if resized_img:
+                setattr(self.instance, self.field.width_field, resized_img.size[0])
+                setattr(self.instance, self.field.height_field, resized_img.size[1])
+
+
+class CustomImageField(models.ImageField):
+    attr_class = CustomImageFieldFile
+
+    def __init__(self, resize=False, to_width=None, to_height=None, force=True, *args, **kwargs):
+        self.resize = resize
+        if resize:
+            self.to_width = to_width
+            self.to_height = to_height
+            self.force = force
+        super(CustomImageField, self).__init__(*args, **kwargs)
+
 
 @python_2_unicode_compatible
 class Question(models.Model):
@@ -538,7 +598,7 @@ class Question(models.Model):
     Shared properties placed here.
     """
 
-    quiz = models.ManyToManyField(Quiz,
+    quiz = models.ForeignKey(Quiz,
                                   verbose_name=_("Quiz"),
                                   blank=True)
 
@@ -552,11 +612,14 @@ class Question(models.Model):
                                      blank=True,
                                      null=True)
 
+    #figure = CustomImageField(resize=True, to_width=1024, to_height=768, force=False,
+    #                            width_field='image_width', height_field='image_height',
     figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
                                blank=True,
                                null=True,
                                verbose_name=_("Figure"))
-
+    #image_width = models.PositiveIntegerField(editable=False)
+    #image_height = models.PositiveIntegerField(editable=False)
     content = models.CharField(max_length=1000,
                                blank=False,
                                help_text=_("Enter the question text that "
